@@ -1,0 +1,1570 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>专业课达成度分析工作台</title>
+<style>
+:root{
+  --bg:#f4f6f8; --card:#fff; --line:#e3e7ec; --line2:#eef1f5;
+  --text:#1c2430; --muted:#68758a; --accent:#2563eb; --accent-soft:#eaf1ff;
+  --import:#fff8d6; --warn:#b45309; --warn-bg:#fff6e8; --danger:#b91c1c; --ok:#0f766e;
+  --radius:10px;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:var(--bg); color:var(--text);
+  font-family:"Microsoft YaHei","PingFang SC","Segoe UI",system-ui,-apple-system,sans-serif;
+  font-size:14px; line-height:1.65; -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3{margin:0; font-weight:600}
+p{margin:0}
+button{font-family:inherit; font-size:13px; cursor:pointer}
+.num,td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
+
+/* ---------- 顶栏 ---------- */
+.topbar{
+  position:sticky; top:0; z-index:20; display:flex; align-items:center; justify-content:space-between;
+  gap:16px; padding:12px 24px; background:rgba(255,255,255,.92); backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--line);
+}
+.brand{display:flex; align-items:center; gap:12px}
+.mark{
+  width:34px; height:34px; border-radius:9px; background:linear-gradient(135deg,#2563eb,#0ea5e9);
+  color:#fff; display:grid; place-items:center; font-weight:700; font-size:15px; letter-spacing:.5px;
+}
+.brand h1{font-size:16px; letter-spacing:.2px}
+.brand .sub{font-size:12px; color:var(--muted)}
+.bar-actions{display:flex; gap:8px; flex-wrap:wrap}
+button.ghost{
+  background:#fff; border:1px solid var(--line); color:var(--text);
+  padding:7px 13px; border-radius:7px; transition:.15s;
+}
+button.ghost:hover:not(:disabled){border-color:#c2cbd6; background:#fafbfc}
+button.ghost:disabled{opacity:.45; cursor:not-allowed}
+button.primary{
+  background:var(--accent); border:1px solid var(--accent); color:#fff;
+  padding:8px 18px; border-radius:7px; font-weight:600;
+}
+button.primary:hover{background:#1d4ed8}
+button.sm{padding:5px 10px; font-size:12px}
+button.link{background:none; border:none; color:var(--accent); text-decoration:underline; padding:0; font-size:13px}
+
+/* ---------- 布局 ---------- */
+main{max-width:1300px; margin:0 auto; padding:20px 24px 64px; display:grid; grid-template-columns:minmax(0,1fr); gap:16px}
+main > *, #resultArea > *{min-width:0}
+.card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:18px 20px; min-width:0}
+.card-hd{display:flex; align-items:center; gap:10px; margin-bottom:14px; flex-wrap:wrap}
+.step{
+  width:22px; height:22px; border-radius:50%; background:var(--accent-soft); color:var(--accent);
+  display:grid; place-items:center; font-size:12px; font-weight:700; flex:none;
+}
+.card-hd h2{font-size:15px}
+.card-hd .tag{font-size:12px; color:var(--muted); margin-left:auto}
+.row{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:10px}
+.hint{font-size:12px; color:var(--muted)}
+.msg{font-size:12.5px}
+.msg.err{color:var(--danger)}
+.msg.ok{color:var(--ok)}
+
+/* ---------- 设置区 ---------- */
+.sub-hd{
+  display:flex; align-items:center; gap:8px; margin:18px 0 8px;
+  font-size:13px; font-weight:600; color:#3c4a5e;
+}
+.sub-hd::before{content:""; width:3px; height:13px; border-radius:2px; background:var(--accent); flex:none}
+.sub-hd .spacer{flex:1}
+.sub-hd .hint{font-weight:400}
+table.cfg td{padding:4px 8px}
+table.cfg th{font-size:12px; padding:6px 8px}
+table.cfg input{
+  width:100%; padding:4px 8px; border:1px solid var(--line); border-radius:6px;
+  font-family:inherit; font-size:12.5px; background:#fff;
+}
+table.cfg input:focus{outline:2px solid var(--accent-soft); border-color:#b9cdf5}
+table.cfg input.r{text-align:right; font-variant-numeric:tabular-nums}
+table.cfg th.ghead{width:168px; padding:5px 6px}
+.ghwrap{display:flex; align-items:center; gap:3px}
+.ghwrap input{
+  flex:1; min-width:0; padding:3px 7px; border:1px solid #d9e3f2; border-radius:5px;
+  font-family:inherit; font-size:12px; font-weight:600; color:#1e4fa8; background:#fff;
+}
+.ghwrap input:focus{outline:2px solid var(--accent-soft); border-color:#b9cdf5}
+.ghwrap .gdel{
+  border:none; background:none; color:#8ba3c7; font-size:15px;
+  padding:0 3px; line-height:1; cursor:pointer; flex:none;
+}
+.ghwrap .gdel:hover:not(:disabled){color:var(--danger)}
+.ghwrap .gdel:disabled{opacity:.28; cursor:not-allowed}
+select.gsel{
+  padding:2px 4px; border:1px solid var(--line); border-radius:6px;
+  font-family:inherit; font-size:12px; background:#fff; max-width:190px;
+}
+.wdel{
+  background:none; border:1px solid var(--line); color:var(--muted);
+  border-radius:6px; padding:2px 9px; font-size:12px;
+}
+.wdel:hover{color:var(--danger); border-color:#f0c4c4; background:#fdf5f5}
+tr.sumrow td{background:#f7f9fc; font-weight:600}
+.bad{color:var(--danger); font-weight:600}
+.okv{color:var(--ok); font-weight:600}
+.setup-actions{
+  display:flex; gap:12px; align-items:center; flex-wrap:wrap;
+  margin-top:18px; padding-top:14px; border-top:1px dashed var(--line);
+}
+
+/* ---------- 导入区 ---------- */
+.drop{
+  border:1.5px dashed #c8d2e0; border-radius:9px; background:#fbfcfe;
+  padding:20px; text-align:center; transition:.18s;
+}
+.drop.over{border-color:var(--accent); background:var(--accent-soft)}
+.drop strong{font-size:14px}
+#paste{
+  width:100%; min-height:104px; margin-top:10px; padding:10px 12px; resize:vertical;
+  border:1px solid var(--line); border-radius:8px; background:#fcfdfe;
+  font-family:ui-monospace,"Cascadia Mono",Consolas,monospace; font-size:12px; line-height:1.7; color:#334155;
+}
+#paste:focus{outline:2px solid var(--accent-soft); border-color:#b9cdf5}
+select{padding:6px 10px; border:1px solid var(--line); border-radius:7px; background:#fff; font-family:inherit; font-size:13px}
+
+/* ---------- KPI ---------- */
+.tabs{display:flex; gap:6px; flex-wrap:wrap; margin:0 0 14px}
+.tab{
+  background:#fff; border:1px solid var(--line); color:#4a5568;
+  padding:5px 14px; border-radius:999px; font-size:13px; transition:.15s;
+}
+.tab:hover{border-color:#c2cbd6; background:#fafbfc}
+.tab.on{background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600}
+.tab .n{font-size:11.5px; opacity:.7; margin-left:5px}
+.tab.on .n{opacity:.85}
+.kpis{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px}
+.kpi{border:1px solid var(--line); border-radius:9px; padding:12px 14px; background:#fff}
+.kpi .k{font-size:12px; color:var(--muted)}
+.kpi .v{font-size:23px; font-weight:650; letter-spacing:-.4px; font-variant-numeric:tabular-nums; margin-top:2px}
+.kpi .u{font-size:11.5px; color:var(--muted); font-weight:400; margin-left:3px}
+.kpi.hl{background:linear-gradient(180deg,#f7faff,#fff); border-color:#dbe6fb}
+
+/* ---------- 表格 ---------- */
+.tbl-wrap{overflow:auto; border:1px solid var(--line); border-radius:9px}
+table{border-collapse:collapse; width:100%; font-size:13px}
+th,td{padding:7px 10px; border-bottom:1px solid var(--line2); white-space:nowrap}
+thead th{
+  background:#f5f8fc; font-weight:600; color:#3c4a5e; font-size:12.5px;
+  position:sticky; top:0; z-index:1; border-bottom:1px solid #dfe6ef;
+}
+tbody tr:hover{background:#fafcff}
+tbody tr:last-child td{border-bottom:none}
+td.gname{font-weight:600; background:#fbfcfe; vertical-align:middle}
+tr.sub td{background:#f7f9fc; font-weight:600}
+.accent{color:var(--accent); font-weight:650}
+tr.warnrow td{background:#fffaf3}
+tr.warnrow:hover td{background:#fff6e8}
+.warnmark{color:var(--warn); cursor:help; font-size:12px}
+.mini{font-size:11.5px; color:var(--muted); margin-top:8px}
+.grouphead th{background:#eef3fa; font-size:12px; text-align:center; border-bottom:1px solid #dde6f2}
+
+/* 明细表 */
+#detailWrap{max-height:560px}
+#detailTable th{font-size:12px; padding:6px 8px}
+#detailTable td{padding:5px 8px; font-size:12.5px}
+#detailTable th.calc{color:#1e4fa8; background:#eef4ff}
+#detailTable th.imp{color:#8a6100; background:#fff8d6}
+#detailTable td.imp{background:#fffdf0}
+#detailTable td.calc{background:#f7faff}
+.idcol{font-family:ui-monospace,Consolas,monospace; font-size:12px; color:#475569}
+
+/* 提示条 */
+.note{
+  border:1px solid #f0dfae; background:var(--import); border-radius:8px; padding:10px 13px;
+  font-size:12.5px; color:#6b4f00; margin-top:12px;
+}
+.alert{
+  border:1px solid #f3c9a0; background:var(--warn-bg); border-radius:8px; padding:10px 13px;
+  font-size:12.5px; color:#8a4b0a;
+}
+.alert b{color:#7c3d00}
+.alert ul{margin:6px 0 0; padding-left:18px}
+.alert li{margin:2px 0}
+.legend{display:flex; gap:16px; flex-wrap:wrap; font-size:12px; color:var(--muted); margin-top:10px}
+.legend i{display:inline-block; width:11px; height:11px; border-radius:3px; margin-right:5px; vertical-align:-1px}
+.legend .i-imp{background:var(--import); border:1px solid #f0dfae}
+.legend .i-calc{background:#eef4ff; border:1px solid #d4e2ff}
+
+/* 图 */
+#chart{display:grid; gap:6px; margin-top:4px}
+#chart svg{width:100%; height:auto; display:block}
+#chart .panel{min-width:0}
+#chart .panel + .panel{border-top:1px dashed var(--line); padding-top:10px}
+.panel-bar{display:flex; justify-content:flex-end; padding:0 0 2px}
+
+footer.note-foot{font-size:11.5px; color:var(--muted); text-align:center; padding:6px 0 0}
+footer.note-foot p{margin:2px 0}
+footer.note-foot .copyright{font-size:12px; color:#4a5568; letter-spacing:.2px}
+
+#resultArea{display:grid; gap:16px}
+
+@media (max-width:760px){
+  main{padding:14px}
+  .topbar{padding:10px 14px; flex-direction:column; align-items:flex-start}
+}
+
+@media print{
+  body{background:#fff}
+  .topbar,.no-print,details.params,#importCard,#setupCard{display:none !important}
+  main{max-width:none; padding:0; gap:10px}
+  .card{border:none; padding:0 0 10px; break-inside:avoid}
+  .card-hd{margin-bottom:8px}
+  table{font-size:11px}
+  #detailWrap{max-height:none; overflow:visible}
+  thead th{position:static}
+  .kpi .v{font-size:19px}
+  #detailTable td,#detailTable th{padding:3px 5px; font-size:10.5px}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="mark">政</div>
+    <div>
+      <h1>专业课达成度分析工作台</h1>
+      <p class="sub">分题段统计与课程目标达成度计算</p>
+    </div>
+  </div>
+  <div class="bar-actions no-print">
+    <button class="ghost" id="btnExport" disabled>导出明细 CSV</button>
+    <button class="ghost" id="btnPrint" disabled>打印 / 存 PDF</button>
+    <button class="ghost" id="btnReset">清空重来</button>
+  </div>
+</div>
+
+<main>
+
+  <!-- 1 课程设置 -->
+  <section class="card" id="setupCard">
+    <div class="card-hd"><span class="step">1</span><h2>课程设置</h2>
+      <span class="tag">先填好这里，再生成模板、导入数据</span>
+    </div>
+
+    <div class="sub-hd">期末成绩 · 题型与分值<span class="spacer"></span>
+      <button class="ghost sm" id="btnAddSec">+ 添加题型</button>
+    </div>
+    <div class="tbl-wrap">
+      <table class="cfg" id="secTable">
+        <thead><tr><th style="min-width:180px">题型名称</th><th class="num" style="width:130px">该题满分</th><th style="width:70px"></th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <p class="mini" id="secTotal"></p>
+
+    <div class="sub-hd">平时成绩 · 分项与占比<span class="spacer"></span>
+      <button class="ghost sm" id="btnAddDay">+ 添加分项</button>
+    </div>
+    <div class="tbl-wrap">
+      <table class="cfg" id="dayTable">
+        <thead><tr><th style="min-width:180px">分项名称</th><th class="num" style="width:120px">满分</th>
+          <th class="num" style="width:120px">占比</th><th style="width:70px"></th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <p class="mini" id="dayTotal"></p>
+
+    <div class="sub-hd">综合成绩构成</div>
+    <div class="row" style="margin-top:0">
+      <label class="hint">平时成绩占比 <input class="pitem-input" id="ovDaily" type="number" step="0.05" min="0" style="width:80px;padding:4px 6px;text-align:right;border:1px solid var(--line);border-radius:6px;font-family:inherit"></label>
+      <label class="hint">期末成绩占比 <input class="pitem-input" id="ovExam" type="number" step="0.05" min="0" style="width:80px;padding:4px 6px;text-align:right;border:1px solid var(--line);border-radius:6px;font-family:inherit"></label>
+      <span class="hint" id="ovTotal"></span>
+    </div>
+
+    <div class="sub-hd">课程目标 · 评价环节权重<span class="spacer"></span>
+      <button class="ghost sm" id="btnAddGoal">+ 添加课程目标</button>
+    </div>
+    <div class="tbl-wrap">
+      <table class="cfg" id="goalTableCfg">
+        <thead></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <p class="mini">课程目标可以增删和改名（表头里的输入框直接改，× 删除）。权重只需填相对比例，程序会在每个课程目标内部自动归一化（除以该目标权重之和），所以填 0.25 或 25 结果相同。留空或填 0 表示该环节不参与这个目标。</p>
+
+    <div class="setup-actions">
+      <button class="primary" id="btnTpl">生成导入模板（CSV）</button>
+      <span class="hint">模板表头会按上面的题型、分项和班级自动生成，学生只填原始分数。</span>
+    </div>
+  </section>
+
+  <!-- 2 导入 -->
+  <section class="card" id="importCard">
+    <div class="card-hd"><span class="step">2</span><h2>导入原始数据</h2>
+      <span class="tag">学号、姓名、班级与各项原始分都从导入的表格读取</span>
+    </div>
+
+    <div class="drop" id="drop">
+      <p><strong>把填好的文件拖到这里</strong>，或 <button class="link" id="btnPick">选择文件</button>
+        <span class="hint">（支持 .xlsx / .csv）</span></p>
+      <p class="hint" style="margin-top:4px">也可以直接从 Excel 复制数据区域，粘贴到下面的文本框。</p>
+      <input type="file" id="file" accept=".xlsx,.xlsm,.csv,.txt" hidden>
+    </div>
+
+    <div class="row">
+      <label class="hint" id="sheetWrap" hidden>工作表
+        <select id="sheetSel"></select>
+      </label>
+      <button class="ghost sm" id="btnDemo">载入示例数据</button>
+      <span class="hint" id="fileInfo"></span>
+    </div>
+
+    <textarea id="paste" spellcheck="false"></textarea>
+
+    <div class="row">
+      <button class="primary" id="btnParse">解析并计算</button>
+      <span class="msg" id="msg"></span>
+    </div>
+
+    <div class="legend">
+      <span><i class="i-imp"></i>原始导入值</span>
+      <span><i class="i-calc"></i>按设置计算值</span>
+    </div>
+  </section>
+
+  <!-- 3 结果 -->
+  <section id="resultArea" hidden>
+    <div class="card">
+      <div class="card-hd"><span class="step">3</span><h2>总体结果</h2>
+        <span class="tag" id="scopeTag"></span>
+      </div>
+      <div class="tabs" id="classTabs"></div>
+      <div class="kpis" id="kpis"></div>
+      <div id="issueBox" style="margin-top:14px"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd"><h2 style="font-size:14.5px">课程目标达成度</h2>
+        <span class="tag">达成度 = Σ(权重 × 得分率) ÷ Σ权重</span>
+      </div>
+      <div class="tbl-wrap">
+        <table id="goalTable">
+          <thead>
+            <tr>
+              <th>课程目标</th><th>评价环节</th><th class="num">权重</th>
+              <th class="num">环节满分</th><th class="num">平均得分</th>
+              <th class="num">目标达成度</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p class="mini">「环节满分」「平均得分」均按百分制显示：平均得分 = 该环节原始平均分 ÷ 原始满分 × 100（鼠标停在数字上可看原始满分）。「目标达成度」= 各环节平均得分按权重加权后再除以 100，结果为 0–1 之间的小数。</p>
+    </div>
+
+    <div class="card">
+      <div class="card-hd"><h2 style="font-size:14.5px">毕业要求指标点达成情况</h2>
+        <span class="tag">目标达成权重可手工修改</span>
+      </div>
+      <div class="tbl-wrap">
+        <table id="gradTable">
+          <thead>
+            <tr><th>毕业要求</th><th>指标点</th><th class="num">权重</th><th>课程目标</th>
+              <th class="num">目标达成权重</th><th class="num">达成评价值</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p class="mini">「达成评价值」= 目标达成权重 × 对应课程目标达成度。</p>
+    </div>
+
+    <div class="card">
+      <div class="card-hd"><h2 style="font-size:14.5px">班级达成情况分布</h2>
+        <span class="tag">每个点 = 1 名学生 · 横轴为序号 · 纵轴 0–1.0 · 每张图可单独下载</span>
+      </div>
+      <div class="chart" id="chart"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd"><h2 style="font-size:14.5px">个体数据（每个学生一行）</h2>
+        <span class="tag" id="indivTag">对应原表「个体数据」工作表</span>
+        <button class="ghost sm" id="btnIndiv">下载表格 CSV</button>
+      </div>
+      <div class="tbl-wrap" id="indivWrap">
+        <table id="indivTable"></table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd"><h2 style="font-size:14.5px">分班对比</h2>
+        <span class="tag">全员合计 + 按导入数据中的「班级」列分组</span>
+      </div>
+      <div class="tbl-wrap">
+        <table id="classTable"><thead></thead><tbody></tbody></table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd"><h2 style="font-size:14.5px">学生明细</h2>
+        <span class="tag" id="detailTag"></span>
+        <button class="ghost sm" id="btnDetailExport">导出 CSV</button>
+      </div>
+      <div class="tbl-wrap" id="detailWrap">
+        <table id="detailTable"></table>
+      </div>
+      <p class="mini">单元格带「⚠」表示该行存在数据问题，把鼠标移到标记上可看原因。</p>
+    </div>
+  </section>
+
+  <footer class="note-foot">
+    <p>本页所有计算均在本地浏览器完成，数据不会上传到任何服务器。</p>
+    <p class="copyright">© 王啸（wangxiao@hrbu.edu.cn）</p>
+  </footer>
+</main>
+
+<script>
+/* =========================================================
+   ENGINE:BEGIN  —— 纯计算逻辑，不依赖 DOM，可单独测试
+   ========================================================= */
+
+/* 默认设置 = 原始表格的口径，改设置后结果必须仍能被校验 */
+const DEFAULT_SETUP = {
+  sections: [
+    { name: '客观题', full: 30 },
+    { name: '简答题', full: 30 },
+    { name: '论述题', full: 20 },
+    { name: '材料题', full: 20 }
+  ],
+  daily: [
+    { name: '任务文本', full: 100, weight: 0.20 },
+    { name: '小组讨论', full: 100, weight: 0.20 },
+    { name: '自主学习', full: 100, weight: 0.30 },
+    { name: '探索性作业', full: 100, weight: 0.30 }
+  ],
+  goals: [
+    { name: '课程目标1', w: { 's:客观题': 0.15, 's:论述题': 0.10, 'd:小组讨论': 0.10, 'd:任务文本': 0.10 } },
+    { name: '课程目标2', w: { 's:简答题': 0.15, 'd:自主学习': 0.15 } },
+    { name: '课程目标3', w: { 's:材料题': 0.10, 'd:任务文本': 0.15 } }
+  ],
+  overall: { daily: 0.50, exam: 0.50 },
+  grad: [
+    { req: '3.学科素养', point: '3.2', w: 0.2, goal: 1, gw: 0.023 },
+    { req: '3.学科素养', point: '3.4', w: 0.3, goal: 2, gw: 0.100 },
+    { req: '6.综合育人', point: '6.1', w: 0.2, goal: 3, gw: 0.090 }
+  ]
+};
+
+function clone(o) { return JSON.parse(JSON.stringify(o)); }
+function itemKey(kind, name) { return kind + ':' + name; }
+function splitKey(k) { const i = k.indexOf(':'); return [k.slice(0, i), k.slice(i + 1)]; }
+function weightSum(w) { let s = 0; for (const k in w) s += (+w[k] || 0); return s; }
+
+function num(v) {
+  if (v === null || v === undefined) return NaN;
+  if (typeof v === 'number') return v;
+  const s = String(v).replace(/,/g, '').trim();
+  if (!s) return NaN;
+  const n = Number(s);
+  return isNaN(n) ? NaN : n;
+}
+function avgNum(arr) {
+  let s = 0, c = 0;
+  for (const v of arr) if (typeof v === 'number' && !isNaN(v)) { s += v; c++; }
+  return c ? s / c : NaN;
+}
+const normName = s => String(s == null ? '' : s).replace(/[\s\u3000]/g, '');
+
+/* 表头 -> 字段（按当前设置里的题型、分项名称匹配） */
+function buildMap(headerRow, setup) {
+  const map = {};
+  const secNames = setup.sections.map(s => s.name);
+  const dayNames = setup.daily.map(d => d.name);
+  headerRow.forEach((h, i) => {
+    const s = normName(h);
+    if (!s) return;
+    const put = k => { if (map[k] === undefined) map[k] = i; };
+    if (/学号|工号/.test(s)) return put('id');
+    if (/姓名/.test(s)) return put('name');
+    if (/班级|教学班/.test(s)) return put('cls');
+    let j = secNames.findIndex(n => normName(n) === s);
+    if (j >= 0) return put(itemKey('s', secNames[j]));
+    j = dayNames.findIndex(n => normName(n) === s);
+    if (j >= 0) return put(itemKey('d', dayNames[j]));
+    j = secNames.findIndex(n => n && s.includes(normName(n)));
+    if (j >= 0) return put(itemKey('s', secNames[j]));
+    j = dayNames.findIndex(n => n && s.includes(normName(n)));
+    if (j >= 0) return put(itemKey('d', dayNames[j]));
+  });
+  return map;
+}
+
+/* 二维数组（含表头）-> 学生原始记录 */
+function ingestRows(rows, setup) {
+  let hi = -1, map = {};
+  for (let i = 0; i < Math.min(rows.length, 40); i++) {
+    const m = buildMap(rows[i] || [], setup);
+    if (m.id !== undefined || m.name !== undefined) { hi = i; map = m; break; }
+  }
+  if (hi < 0) throw new Error('没有找到表头行：请确认表格中包含「学号」或「姓名」列');
+
+  const missing = new Set();
+  setup.sections.forEach(s => { if (map[itemKey('s', s.name)] === undefined) missing.add(itemKey('s', s.name)); });
+  setup.daily.forEach(d => { if (map[itemKey('d', d.name)] === undefined) missing.add(itemKey('d', d.name)); });
+  if (map.cls === undefined) missing.add('cls');
+
+  const list = [];
+  for (let i = hi + 1; i < rows.length; i++) {
+    const r = rows[i] || [];
+    const cell = k => (map[k] === undefined ? '' : (r[map[k]] == null ? '' : String(r[map[k]])));
+    const id = cell('id').trim(), name = cell('name').trim();
+    /* 学号与姓名同时为空：若已有学生，说明明细结束（下面是平均行、汇总表），就此停止 */
+    if (!id && !name) { if (list.length) break; else continue; }
+    if (/^(平均|合计|小计|总计|全班)/.test(id + name)) continue;
+
+    const rec = { id, name, cls: cell('cls').trim() || '未填班级', sec: {}, daily: {}, _blank: [], _over: [] };
+    setup.sections.forEach(s => {
+      const key = itemKey('s', s.name), raw = cell(key), n = num(raw);
+      if (raw.trim() === '' || isNaN(n)) {
+        rec.sec[s.name] = 0;
+        if (!missing.has(key)) rec._blank.push('期末·' + s.name);
+      } else {
+        rec.sec[s.name] = n;
+        if (n > s.full + 1e-9) rec._over.push(`${s.name} ${n} > ${s.full}`);
+      }
+    });
+    setup.daily.forEach(d => {
+      const key = itemKey('d', d.name), raw = cell(key), n = num(raw);
+      const full = d.full > 0 ? d.full : 100;
+      if (raw.trim() === '' || isNaN(n)) {
+        rec.daily[d.name] = 0;
+        if (!missing.has(key)) rec._blank.push('平时·' + d.name);
+      } else {
+        rec.daily[d.name] = n;
+        if (n > full + 1e-9) rec._over.push(`${d.name} ${n} > ${full}`);
+      }
+    });
+    list.push(rec);
+  }
+  return { list, missing, map, headerRow: hi + 1 };
+}
+
+/* 单条记录派生计算 */
+function computeOne(r, setup, missing) {
+  const o = {
+    id: r.id, name: r.name, cls: r.cls,
+    _blank: r._blank, _over: r._over,
+    sec: { ...r.sec }, daily: { ...r.daily },
+    _rate: {}, _full: {}, _goal: []
+  };
+  let kRaw = 0, kFull = 0;
+  setup.sections.forEach(s => {
+    const key = itemKey('s', s.name);
+    kRaw += r.sec[s.name] || 0;
+    kFull += (+s.full || 0);
+    o._full[key] = +s.full || 0;
+    o._rate[key] = missing.has(key) ? NaN : ((+s.full > 0) ? (r.sec[s.name] || 0) / s.full : NaN);
+  });
+  setup.daily.forEach(d => {
+    const key = itemKey('d', d.name);
+    const full = d.full > 0 ? d.full : 100;
+    o._full[key] = full;
+    o._rate[key] = missing.has(key) ? NaN : (r.daily[d.name] || 0) / full;
+  });
+
+  o.K = kRaw;
+  o.examPct = kFull > 0 ? kRaw / kFull * 100 : NaN;
+
+  /* 平时成绩（百分制）：分项得分率按占比加权 */
+  let swD = 0, dAcc = 0, dBad = false;
+  setup.daily.forEach(d => {
+    const w = +d.weight || 0;
+    if (!w) return;
+    swD += w;
+    const rt = o._rate[itemKey('d', d.name)];
+    if (isNaN(rt)) { dBad = true; return; }
+    dAcc += rt * w;
+  });
+  o.D = (swD > 0 && !dBad) ? dAcc / swD * 100 : NaN;
+
+  /* 综合成绩 */
+  const od = +setup.overall.daily || 0, oe = +setup.overall.exam || 0;
+  if (isNaN(o.D) && isNaN(o.examPct)) o.F = NaN;
+  else o.F = (isNaN(o.D) ? 0 : o.D) * od + (isNaN(o.examPct) ? 0 : o.examPct) * oe;
+
+  /* 各课程目标达成度 */
+  o._goal = setup.goals.map(g => {
+    let sw = 0, acc = 0, bad = false;
+    for (const k in g.w) {
+      const w = +g.w[k] || 0;
+      if (!w) continue;
+      const rt = o._rate[k];
+      if (rt === undefined || isNaN(rt)) { bad = true; continue; }
+      sw += w; acc += w * rt;
+    }
+    return (bad || !sw) ? NaN : acc / sw;
+  });
+  return o;
+}
+
+function computeAll(list, setup, missing) {
+  return list.map(r => computeOne(r, setup, missing));
+}
+
+/* 课程目标汇总表 */
+function goalRowsOf(rows, setup) {
+  return setup.goals.map((g, gi) => {
+    const sw = weightSum(g.w);
+    const items = Object.keys(g.w).filter(k => (+g.w[k] || 0) > 0).map(k => {
+      const [kind, ref] = splitKey(k);
+      const full = kind === 's'
+        ? ((setup.sections.find(x => x.name === ref) || {}).full || 0)
+        : ((setup.daily.find(x => x.name === ref) || {}).full || 100);
+      return {
+        key: k, kind, ref, w: +g.w[k], wNorm: sw ? (+g.w[k]) / sw : 0, full,
+        score: avgNum(rows.map(r => (kind === 's' ? r.sec[ref] : r.daily[ref]))),
+        rate: avgNum(rows.map(r => r._rate[k]))
+      };
+    });
+    return { name: g.name, items, value: avgNum(rows.map(r => r._goal[gi])), sw };
+  });
+}
+
+function gradRowsOf(goals, setup) {
+  return setup.grad.map(x => {
+    const g = goals[x.goal - 1];
+    return { ...x, goalName: g ? g.name : '', value: (g && !isNaN(g.value)) ? x.gw * g.value : NaN };
+  });
+}
+
+function classGroups(rows) {
+  const m = new Map();
+  rows.forEach(r => {
+    const k = r.cls || '未填班级';
+    if (!m.has(k)) m.set(k, []);
+    m.get(k).push(r);
+  });
+  return [...m.entries()].map(([cls, list]) => ({ cls, list }));
+}
+
+/* =========================================================
+   ENGINE:END
+   ========================================================= */
+
+/* ========================= 状态 ========================= */
+let SETUP = clone(DEFAULT_SETUP);
+let RAW = [];
+let MISSING = new Set();
+let DATA = [];
+let LAST = null;          // { rows, info } 最近一次导入的二维数组
+let VIEW = 'ALL';         // 结果区当前查看范围：'ALL' 或某个班级名
+let CUR_INFO = '';        // 结果区当前的数据来源说明
+let XLSX_SHEETS = null;
+
+/* ========================= 工具 ========================= */
+const $ = s => document.querySelector(s);
+function fmt(v, d = 1) {
+  if (v == null || (typeof v === 'number' && isNaN(v))) return '—';
+  if (typeof v !== 'number') return v;
+  let s = v.toFixed(d);
+  if (s.includes('.')) s = s.replace(/0+$/, '').replace(/\.$/, '');
+  return s;
+}
+function f4(v) { return (v == null || isNaN(v)) ? '—' : v.toFixed(4); }
+function f1(v) { return (v == null || isNaN(v)) ? '—' : v.toFixed(1); }
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}
+
+/* ========================= 设置面板 ========================= */
+function renderSetup() {
+  /* 期末题型 */
+  const stb = $('#secTable tbody');
+  stb.innerHTML = SETUP.sections.length
+    ? SETUP.sections.map((s, i) => `<tr>
+        <td><input data-t="sec" data-i="${i}" data-f="name" value="${esc(s.name)}"></td>
+        <td><input class="r" type="number" min="0" step="1" data-t="sec" data-i="${i}" data-f="full" value="${s.full}"></td>
+        <td><button class="wdel" data-del="sec" data-i="${i}">删除</button></td>
+      </tr>`).join('')
+    : '<tr><td colspan="3" class="hint">还没有题型，点右上角「添加题型」。</td></tr>';
+
+  /* 平时分项 */
+  const dtb = $('#dayTable tbody');
+  dtb.innerHTML = SETUP.daily.length
+    ? SETUP.daily.map((d, i) => `<tr>
+        <td><input data-t="day" data-i="${i}" data-f="name" value="${esc(d.name)}"></td>
+        <td><input class="r" type="number" min="0" step="1" data-t="day" data-i="${i}" data-f="full" value="${d.full}"></td>
+        <td><input class="r" type="number" min="0" step="0.05" data-t="day" data-i="${i}" data-f="weight" value="${d.weight}"></td>
+        <td><button class="wdel" data-del="day" data-i="${i}">删除</button></td>
+      </tr>`).join('')
+    : '<tr><td colspan="4" class="hint">还没有分项，点右上角「添加分项」。</td></tr>';
+
+  /* 权重矩阵（列数由课程目标决定，可增删） */
+  $('#goalTableCfg thead').innerHTML = `<tr>
+    <th style="min-width:170px">评价环节</th>
+    ${SETUP.goals.map((g, gi) => `<th class="ghead">
+      <span class="ghwrap">
+        <input data-gname="${gi}" value="${esc(g.name)}" title="可直接修改课程目标名称">
+        <button class="gdel" data-gdel="${gi}" title="删除该课程目标"
+          ${SETUP.goals.length <= 1 ? 'disabled' : ''}>×</button>
+      </span>
+    </th>`).join('')}
+  </tr>`;
+
+  const gtb = $('#goalTableCfg tbody');
+  const allItems = [
+    ...SETUP.sections.map(s => ({ kind: 's', name: s.name, label: '期末·' + s.name })),
+    ...SETUP.daily.map(d => ({ kind: 'd', name: d.name, label: '平时·' + d.name }))
+  ];
+  gtb.innerHTML = allItems.length
+    ? allItems.map(it => {
+      const key = itemKey(it.kind, it.name);
+      return `<tr>
+        <td>${esc(it.label)}</td>
+        ${SETUP.goals.map((g, gi) => `<td><input class="r" type="number" min="0" step="0.05"
+            data-t="goal" data-g="${gi}" data-k="${esc(key)}" value="${(g.w[key] || 0)}"></td>`).join('')}
+      </tr>`;
+    }).join('')
+    : `<tr><td colspan="${SETUP.goals.length + 1}" class="hint">先添加题型或分项，这里会出现可参与评价的环节。</td></tr>`;
+
+  /* 综合构成 */
+  $('#ovDaily').value = SETUP.overall.daily;
+  $('#ovExam').value = SETUP.overall.exam;
+
+  /* 粘贴框提示 */
+  $('#paste').placeholder =
+    '从 A1 开始粘贴，含表头。当前设置需要的列：\n' +
+    ['学号', '姓名', '班级', ...SETUP.sections.map(s => s.name), ...SETUP.daily.map(d => d.name)].join('  ');
+
+  refreshTotals();
+}
+
+function refreshTotals() {
+  const secFull = SETUP.sections.reduce((a, s) => a + (+s.full || 0), 0);
+  $('#secTotal').innerHTML = SETUP.sections.length
+    ? `期末题型共 ${SETUP.sections.length} 项，满分合计 <b>${fmt(secFull, 1)}</b> 分。` +
+      (secFull === 100 ? ' <span class="okv">（合计 100 分，学生期末百分制即原始总分）</span>'
+        : ' <span class="hint">（不等于 100 分时，程序会按合计分折算成百分制）</span>')
+    : '';
+
+  const wSum = SETUP.daily.reduce((a, d) => a + (+d.weight || 0), 0);
+  $('#dayTotal').innerHTML = SETUP.daily.length
+    ? `占比合计 <b class="${Math.abs(wSum - 1) > 1e-9 ? 'bad' : 'okv'}">${fmt(wSum, 3)}</b>` +
+      (Math.abs(wSum - 1) > 1e-9 ? '，不等于 1（程序仍会按相对比例归一化）' : '，已归一到 1')
+    : '';
+
+  const ov = (+SETUP.overall.daily || 0) + (+SETUP.overall.exam || 0);
+  $('#ovTotal').innerHTML = `合计 <b class="${Math.abs(ov - 1) > 1e-9 ? 'bad' : 'okv'}">${fmt(ov, 3)}</b>` +
+    (Math.abs(ov - 1) > 1e-9 ? '（建议调整为 1）' : '');
+}
+
+/* 设置改动后：若已有数据，按新设置重新匹配表头并重算 */
+function afterSetupChange() {
+  refreshTotals();
+  if (LAST) applyIngest(LAST.rows, LAST.info, true);
+}
+
+function renameSection(oldName, newName) {
+  SETUP.sections.forEach(s => { if (s.name === oldName) s.name = newName; });
+  SETUP.goals.forEach(g => {
+    const k = itemKey('s', oldName);
+    if (g.w[k] !== undefined) { g.w[itemKey('s', newName)] = g.w[k]; delete g.w[k]; }
+  });
+}
+function renameDaily(oldName, newName) {
+  SETUP.daily.forEach(d => { if (d.name === oldName) d.name = newName; });
+  SETUP.goals.forEach(g => {
+    const k = itemKey('d', oldName);
+    if (g.w[k] !== undefined) { g.w[itemKey('d', newName)] = g.w[k]; delete g.w[k]; }
+  });
+}
+
+/* 设置卡事件 */
+$('#btnAddSec').addEventListener('click', () => {
+  let n = 1;
+  while (SETUP.sections.some(s => s.name === '新题型' + n)) n++;
+  SETUP.sections.push({ name: '新题型' + n, full: 10 });
+  renderSetup();
+  afterSetupChange();
+});
+$('#btnAddDay').addEventListener('click', () => {
+  let n = 1;
+  while (SETUP.daily.some(d => d.name === '新分项' + n)) n++;
+  SETUP.daily.push({ name: '新分项' + n, full: 100, weight: 0 });
+  renderSetup();
+  afterSetupChange();
+});
+
+$('#secTable').addEventListener('change', e => {
+  const inp = e.target.closest('input');
+  if (!inp) return;
+  const i = Number(inp.dataset.i), f = inp.dataset.f;
+  const s = SETUP.sections[i];
+  if (!s) return;
+  if (f === 'name') {
+    const nv = inp.value.trim();
+    if (!nv || nv === s.name) { renderSetup(); return; }
+    renameSection(s.name, nv);
+    renderSetup();
+  } else {
+    s.full = Math.max(0, Number(inp.value) || 0);
+  }
+  afterSetupChange();
+});
+$('#secTable').addEventListener('click', e => {
+  const b = e.target.closest('button[data-del="sec"]');
+  if (!b) return;
+  const i = Number(b.dataset.i);
+  const name = SETUP.sections[i].name;
+  SETUP.sections.splice(i, 1);
+  SETUP.goals.forEach(g => { delete g.w[itemKey('s', name)]; });
+  renderSetup();
+  afterSetupChange();
+});
+
+$('#dayTable').addEventListener('change', e => {
+  const inp = e.target.closest('input');
+  if (!inp) return;
+  const i = Number(inp.dataset.i), f = inp.dataset.f;
+  const d = SETUP.daily[i];
+  if (!d) return;
+  if (f === 'name') {
+    const nv = inp.value.trim();
+    if (!nv || nv === d.name) { renderSetup(); return; }
+    renameDaily(d.name, nv);
+    renderSetup();
+  } else if (f === 'full') {
+    d.full = Math.max(0, Number(inp.value) || 0);
+  } else {
+    d.weight = Math.max(0, Number(inp.value) || 0);
+  }
+  afterSetupChange();
+});
+$('#dayTable').addEventListener('click', e => {
+  const b = e.target.closest('button[data-del="day"]');
+  if (!b) return;
+  const i = Number(b.dataset.i);
+  const name = SETUP.daily[i].name;
+  SETUP.daily.splice(i, 1);
+  SETUP.goals.forEach(g => { delete g.w[itemKey('d', name)]; });
+  renderSetup();
+  afterSetupChange();
+});
+
+$('#goalTableCfg').addEventListener('change', e => {
+  const inp = e.target.closest('tbody input');
+  if (!inp || !inp.dataset.k) return;
+  const gi = Number(inp.dataset.g), k = inp.dataset.k;
+  const g = SETUP.goals[gi];
+  if (!g) return;
+  const v = Math.max(0, Number(inp.value) || 0);
+  if (v) g.w[k] = v; else delete g.w[k];
+  afterSetupChange();
+});
+
+/* 课程目标：改名 / 删除 / 新增 */
+$('#goalTableCfg thead').addEventListener('change', e => {
+  const inp = e.target.closest('input[data-gname]');
+  if (!inp) return;
+  const gi = Number(inp.dataset.gname);
+  const g = SETUP.goals[gi];
+  if (!g) return;
+  const v = inp.value.trim();
+  if (!v) { renderSetup(); return; }
+  g.name = v;
+  renderSetup();
+  afterSetupChange();
+});
+
+$('#goalTableCfg thead').addEventListener('click', e => {
+  const b = e.target.closest('button[data-gdel]');
+  if (!b || b.disabled) return;
+  removeGoal(Number(b.dataset.gdel));
+});
+
+$('#btnAddGoal').addEventListener('click', () => {
+  let n = SETUP.goals.length + 1;
+  while (SETUP.goals.some(g => g.name === '课程目标' + n)) n++;
+  SETUP.goals.push({ name: '课程目标' + n, w: {} });
+  renderSetup();
+  afterSetupChange();
+});
+
+function removeGoal(gi) {
+  if (SETUP.goals.length <= 1) return;
+  SETUP.goals.splice(gi, 1);
+  /* 毕业要求指标点按位置引用课程目标，删除后同步前移，避免指向不存在的目标 */
+  SETUP.grad.forEach(row => {
+    if (row.goal - 1 === gi) row.goal = Math.min(gi + 1, SETUP.goals.length);
+    else if (row.goal - 1 > gi) row.goal -= 1;
+  });
+  renderSetup();
+  afterSetupChange();
+}
+
+$('#ovDaily').addEventListener('change', e => {
+  SETUP.overall.daily = Math.max(0, Number(e.target.value) || 0);
+  afterSetupChange();
+});
+$('#ovExam').addEventListener('change', e => {
+  SETUP.overall.exam = Math.max(0, Number(e.target.value) || 0);
+  afterSetupChange();
+});
+
+/* ========================= 导入 ========================= */
+function setMsg(text, type) {
+  const el = $('#msg');
+  el.textContent = text || '';
+  el.className = 'msg' + (type ? ' ' + type : '');
+}
+
+function applyIngest(rows2d, info, silent) {
+  try {
+    const { list, missing } = ingestRows(rows2d, SETUP);
+    if (!list.length) { setMsg('没有解析到有效学生数据', 'err'); return false; }
+    LAST = { rows: rows2d, info: info || '' };
+    RAW = list;
+    MISSING = missing;
+    DATA = computeAll(RAW, SETUP, MISSING);
+    CUR_INFO = info || '';
+    $('#btnExport').disabled = false;
+    $('#btnPrint').disabled = false;
+    $('#resultArea').hidden = false;
+    render(info);
+    if (!silent) {
+      setMsg(`已载入 ${list.length} 条记录${info ? '（' + info + '）' : ''}`, 'ok');
+      $('#resultArea').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    return true;
+  } catch (e) {
+    setMsg(e.message, 'err');
+    return false;
+  }
+}
+
+/* ---------- 文本解码 ----------
+   优先看 BOM；没有 BOM 时先按严格 UTF-8 解，失败再按 GBK——
+   因为 Excel 在中文 Windows 下「另存为 CSV」默认写 GBK 且不带 BOM。 */
+function decodeText(buf) {
+  const b = new Uint8Array(buf);
+  if (b.length >= 3 && b[0] === 0xEF && b[1] === 0xBB && b[2] === 0xBF)
+    return new TextDecoder('utf-8').decode(b.subarray(3));
+  if (b.length >= 2 && b[0] === 0xFF && b[1] === 0xFE)
+    return new TextDecoder('utf-16le').decode(b.subarray(2));
+  if (b.length >= 2 && b[0] === 0xFE && b[1] === 0xFF)
+    return new TextDecoder('utf-16be').decode(b.subarray(2));
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(b);
+  } catch (e) {
+    try { return new TextDecoder('gbk').decode(b); }
+    catch (e2) { return new TextDecoder('utf-8').decode(b); }
+  }
+}
+
+/* ---------- 纯文本粘贴 ---------- */
+function parseDelimited(text) {
+  const firstLine = text.split(/\r?\n/).find(l => l.trim() !== '') || '';
+  const delim = firstLine.includes('\t') ? '\t' : (firstLine.includes(',') ? ',' : '\t');
+  const rows = [];
+  let row = [], cell = '', q = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (q) {
+      if (ch === '"') {
+        if (text[i + 1] === '"') { cell += '"'; i++; } else q = false;
+      } else cell += ch;
+    } else if (ch === '"') q = true;
+    else if (ch === delim) { row.push(cell); cell = ''; }
+    else if (ch === '\n') { row.push(cell); rows.push(row); row = []; cell = ''; }
+    else if (ch !== '\r') cell += ch;
+  }
+  row.push(cell);
+  rows.push(row);
+  return rows
+    .map(r => r.map(c => String(c).trim()))
+    .filter(r => r.some(c => c !== ''));
+}
+
+function doParseText() {
+  const text = $('#paste').value;
+  if (!text.trim()) { setMsg('请先粘贴数据，或直接导入 Excel / CSV 文件', 'err'); return; }
+  applyIngest(parseDelimited(text), '粘贴导入');
+}
+
+/* ---------- xlsx ---------- */
+async function inflateRaw(data) {
+  if (typeof DecompressionStream === 'undefined')
+    throw new Error('当前浏览器不支持解压 xlsx，请改用 CSV 或直接粘贴');
+  const stream = new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+
+async function unzip(buf) {
+  const dv = new DataView(buf), u8 = new Uint8Array(buf);
+  let eocd = -1;
+  for (let i = u8.length - 22; i >= Math.max(0, u8.length - 65557); i--) {
+    if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+  }
+  if (eocd < 0) throw new Error('不是有效的 xlsx 文件');
+  const count = dv.getUint16(eocd + 10, true);
+  let off = dv.getUint32(eocd + 16, true);
+  const index = [];
+  for (let k = 0; k < count; k++) {
+    if (dv.getUint32(off, true) !== 0x02014b50) break;
+    const method = dv.getUint16(off + 10, true);
+    const csize = dv.getUint32(off + 20, true);
+    const nameLen = dv.getUint16(off + 28, true);
+    const extraLen = dv.getUint16(off + 30, true);
+    const cmtLen = dv.getUint16(off + 32, true);
+    const lho = dv.getUint32(off + 42, true);
+    const name = new TextDecoder('utf-8').decode(u8.subarray(off + 46, off + 46 + nameLen));
+    index.push({ name, method, csize, lho });
+    off += 46 + nameLen + extraLen + cmtLen;
+  }
+  const out = {};
+  for (const f of index) {
+    if (f.method !== 0 && f.method !== 8) continue;
+    const nl = dv.getUint16(f.lho + 26, true);
+    const el = dv.getUint16(f.lho + 28, true);
+    const start = f.lho + 30 + nl + el;
+    const slice = u8.subarray(start, start + f.csize);
+    out[f.name] = f.method === 0 ? slice : await inflateRaw(slice);
+  }
+  return out;
+}
+
+function colIndex(letters) {
+  let n = 0;
+  for (const ch of letters) n = n * 26 + (ch.charCodeAt(0) - 64);
+  return n - 1;
+}
+
+function sheetToRows(xmlText, shared) {
+  const doc = new DOMParser().parseFromString(xmlText, 'application/xml');
+  const rows = [];
+  doc.querySelectorAll('sheetData > row').forEach(rowEl => {
+    const rIdx = parseInt(rowEl.getAttribute('r'), 10) - 1;
+    const arr = [];
+    rowEl.querySelectorAll('c').forEach(c => {
+      const ref = c.getAttribute('r') || '';
+      const ci = colIndex(ref.replace(/\d+/g, '') || 'A');
+      const t = c.getAttribute('t');
+      let v = '';
+      if (t === 'inlineStr') {
+        const is = c.querySelector('is');
+        if (is) v = [...is.querySelectorAll('t')].map(x => x.textContent).join('');
+      } else {
+        const ve = c.querySelector('v');
+        if (ve) v = ve.textContent;
+        if (t === 's') v = shared[parseInt(v, 10)] != null ? shared[parseInt(v, 10)] : '';
+      }
+      arr[ci] = v;
+    });
+    for (let i = 0; i < arr.length; i++) if (arr[i] === undefined) arr[i] = '';
+    rows[rIdx] = arr;
+  });
+  for (let i = 0; i < rows.length; i++) if (!rows[i]) rows[i] = [];
+  return rows;
+}
+
+async function parseXlsxBuffer(buf) {
+  const files = await unzip(buf);
+  const dec = new TextDecoder('utf-8');
+  const get = n => (files[n] ? dec.decode(files[n]) : '');
+  const wbDoc = new DOMParser().parseFromString(get('xl/workbook.xml'), 'application/xml');
+  const relDoc = new DOMParser().parseFromString(get('xl/_rels/workbook.xml.rels'), 'application/xml');
+  const relMap = {};
+  relDoc.querySelectorAll('Relationship').forEach(r => {
+    relMap[r.getAttribute('Id')] = r.getAttribute('Target');
+  });
+
+  const shared = [];
+  if (files['xl/sharedStrings.xml']) {
+    const ss = new DOMParser().parseFromString(get('xl/sharedStrings.xml'), 'application/xml');
+    ss.querySelectorAll('si').forEach(si => {
+      shared.push([...si.querySelectorAll('t')].map(t => t.textContent).join(''));
+    });
+  }
+
+  const R_NS = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+  const sheets = [];
+  wbDoc.querySelectorAll('sheet').forEach(s => {
+    const rid = s.getAttributeNS(R_NS, 'id') || s.getAttribute('r:id');
+    let target = relMap[rid] || '';
+    target = target.replace(/^\/?xl\//, '').replace(/^\/+/, '');
+    if (!target) return;
+    const path = 'xl/' + target;
+    if (!files[path]) return;
+    sheets.push({ name: s.getAttribute('name') || path, rows: sheetToRows(dec.decode(files[path]), shared) });
+  });
+  if (!sheets.length) throw new Error('这个文件里没有可读取的工作表');
+  return sheets;
+}
+
+function fillSheetSelect(sheets) {
+  const sel = $('#sheetSel');
+  sel.innerHTML = sheets.map((s, i) =>
+    `<option value="${i}">${esc(s.name)}（${s.rows.length} 行）</option>`).join('');
+  const prefer = sheets.findIndex(s => /全数据|统计|成绩/.test(s.name));
+  sel.value = String(prefer >= 0 ? prefer : 0);
+  $('#sheetWrap').hidden = false;
+}
+
+function ingestSheet(idx) {
+  const sheet = XLSX_SHEETS[idx];
+  if (!sheet) return;
+  applyIngest(sheet.rows, '工作表：' + sheet.name);
+}
+
+async function handleFile(file) {
+  $('#fileInfo').textContent = file.name;
+  try {
+    const buf = await file.arrayBuffer();
+    const isZip = new Uint8Array(buf)[0] === 0x50 && new Uint8Array(buf)[1] === 0x4b;
+    if (isZip) {
+      XLSX_SHEETS = await parseXlsxBuffer(buf);
+      fillSheetSelect(XLSX_SHEETS);
+      ingestSheet(Number($('#sheetSel').value || 0));
+    } else {
+      XLSX_SHEETS = null;
+      $('#sheetWrap').hidden = true;
+      const text = decodeText(buf);
+      $('#paste').value = text;
+      doParseText();
+    }
+  } catch (e) {
+    setMsg('读取失败：' + e.message, 'err');
+  }
+}
+
+/* ========================= 渲染 ========================= */
+function render(info) {
+  const all = DATA;
+  const clsNames = classGroups(all).map(g => g.cls);
+  if (VIEW !== 'ALL' && !clsNames.includes(VIEW)) VIEW = 'ALL';
+  const rows = VIEW === 'ALL' ? all : all.filter(r => r.cls === VIEW);
+  const goals = goalRowsOf(rows, SETUP);
+  const grads = gradRowsOf(goals, SETUP);
+  const total = rows.length;
+
+  /* --- KPI --- */
+  const fAvg = avgNum(rows.map(r => r.F));
+  const dAvg = avgNum(rows.map(r => r.D));
+  const eAvg = avgNum(rows.map(r => r.examPct));
+  const kpis = [
+    ['学生人数', total, '人', ''],
+    ['平均综合成绩', f1(fAvg), '分', ''],
+    ['平均平时成绩', f1(dAvg), '分', ''],
+    ['平均期末成绩', f1(eAvg), '分', '']
+  ].concat(goals.map((g, i) => [g.name.replace('课程目标', '目标') + '达成度', f4(g.value), '', 'hl']));
+  $('#kpis').innerHTML = kpis.map(([k, v, u, cls]) =>
+    `<div class="kpi ${cls}"><div class="k">${k}</div><div class="v">${v}${u ? `<span class="u">${u}</span>` : ''}</div></div>`
+  ).join('');
+  $('#scopeTag').textContent =
+    (info ? info + ' · ' : '') + (VIEW === 'ALL' ? '全部班级' : VIEW) + ' · ' + total + ' 人';
+
+  /* --- 班级选项卡 --- */
+  const tabItems = [['ALL', '全部数据', all.length]]
+    .concat(classGroups(all).map(g => [g.cls, g.cls, g.list.length]));
+  $('#classTabs').innerHTML = tabItems.map(([k, label, n]) =>
+    `<button class="tab ${VIEW === k ? 'on' : ''}" data-view="${esc(k)}">${esc(label)}<span class="n">${n}人</span></button>`
+  ).join('');
+
+  /* --- 问题清单 --- */
+  const issues = [];
+  const missSec = [...MISSING].filter(k => k.startsWith('s:')).map(k => splitKey(k)[1]);
+  const missDay = [...MISSING].filter(k => k.startsWith('d:')).map(k => splitKey(k)[1]);
+  if (missSec.length) issues.push(`未在表头中找到这些期末题型：<b>${esc(missSec.join('、'))}</b>，相关指标按缺失处理。`);
+  if (missDay.length) issues.push(`未在表头中找到这些平时分项：<b>${esc(missDay.join('、'))}</b>，相关指标按缺失处理。`);
+  if (MISSING.has('cls')) issues.push('未找到「班级」列，分班统计会把所有人归入「未填班级」。');
+
+  const blankRows = rows.filter(r => r._blank.length);
+  if (blankRows.length) {
+    issues.push(`有 <b>${blankRows.length}</b> 名学生的部分成绩为空，已按 0 分计入：` +
+      blankRows.slice(0, 6).map(r => `${esc(r.name || r.id)}（${r._blank.join('、')}）`).join('；') +
+      (blankRows.length > 6 ? ' 等' : ''));
+  }
+
+  const overList = [];
+  rows.forEach(r => r._over.forEach(x => overList.push(`${esc(r.name || r.id)} ${x}`)));
+  if (overList.length) issues.push(`有 ${overList.length} 处得分超过该项满分：${overList.slice(0, 6).join('；')}${overList.length > 6 ? ' 等' : ''}`);
+
+  const emptyGoal = goals.filter(g => !g.items.length).map(g => g.name);
+  if (emptyGoal.length) issues.push(`<b>${esc(emptyGoal.join('、'))}</b>还没有设置任何评价环节权重，达成度无法计算。`);
+
+  $('#issueBox').innerHTML = issues.length
+    ? `<div class="alert"><b>数据检查发现 ${issues.length} 类问题</b><ul>${issues.map(x => `<li>${x}</li>`).join('')}</ul></div>`
+    : `<div class="note">数据检查通过：未发现缺失列、空值或超满分的情况。</div>`;
+
+  /* --- 课程目标表 --- */
+  $('#goalTable tbody').innerHTML = goals.map(g => {
+    if (!g.items.length) {
+      return `<tr><td class="gname">${g.name}</td><td colspan="4" class="hint">未设置评价环节</td>
+        <td class="num accent">—</td></tr>`;
+    }
+    const n = g.items.length;
+    return g.items.map((it, i) => {
+      const pct = (it.rate == null || isNaN(it.rate)) ? NaN : it.rate * 100;
+      let tds = '';
+      if (i === 0) tds += `<td class="gname" rowspan="${n}">${esc(g.name)}</td>`;
+      tds += `<td>${esc((it.kind === 's' ? '期末·' : '平时·') + it.ref)}</td>
+        <td class="num">${it.wNorm.toFixed(3)}</td>
+        <td class="num" title="该环节原始满分 ${fmt(it.full, 1)} 分">100</td>
+        <td class="num" title="原始平均分 ${f1(it.score)} / 原始满分 ${fmt(it.full, 1)}">${f1(pct)}</td>`;
+      if (i === 0) tds += `<td class="num accent" rowspan="${n}">${f4(g.value)}</td>`;
+      return `<tr>${tds}</tr>`;
+    }).join('');
+  }).join('');
+
+  /* --- 毕业要求表 --- */
+  $('#gradTable tbody').innerHTML = grads.map((g, i) => `
+    <tr>
+      <td>${esc(g.req)}</td><td>${esc(g.point)}</td><td class="num">${g.w.toFixed(2)}</td>
+      <td><select class="gsel" data-gsel="${i}">
+        ${SETUP.goals.map((gg, gi) =>
+          `<option value="${gi}" ${gi === g.goal - 1 ? 'selected' : ''}>${esc(gg.name)}</option>`).join('')}
+      </select></td>
+      <td class="num"><input type="number" step="0.001" min="0" value="${g.gw}" data-grad="${i}"
+        style="width:84px;padding:3px 6px;text-align:right;border:1px solid var(--line);border-radius:6px;font-family:inherit"></td>
+      <td class="num accent">${f4(g.value)}</td>
+    </tr>`).join('');
+  $('#gradTable').querySelectorAll('select[data-gsel]').forEach(sel => {
+    sel.addEventListener('change', () => {
+      SETUP.grad[Number(sel.dataset.gsel)].goal = Number(sel.value) + 1;
+      render(info);
+    });
+  });
+  $('#gradTable').querySelectorAll('input[data-grad]').forEach(inp => {
+    inp.addEventListener('change', () => {
+      const i = Number(inp.dataset.grad);
+      const v = Number(inp.value);
+      if (isNaN(v) || v < 0) { inp.value = SETUP.grad[i].gw; return; }
+      SETUP.grad[i].gw = v;
+      render(info);
+    });
+  });
+
+  /* --- 图表：每班每目标一张独立散点图 --- */
+  const groups = classGroups(rows);
+  CHART_PNGS = [];
+  const blocks = [];
+  groups.forEach(g => {
+    goals.forEach((goal, gi) => {
+      CHART_PNGS.push({ goal: goal.name, cls: g.cls });
+      const idx = CHART_PNGS.length - 1;
+      blocks.push(`<div class="panel">
+      <div class="panel-bar"><button class="ghost sm" data-png="${idx}">下载该图 PNG</button></div>
+      ${goalChartSvg(goal, gi, g.list, { subtitle: g.cls })}
+    </div>`);
+    });
+  });
+  $('#chart').innerHTML = blocks.join('');
+  renderIndiv(rows, goals);
+
+  /* --- 分班 --- */
+  $('#classTable thead').innerHTML = `<tr><th>班级</th><th class="num">人数</th>
+    <th class="num">平均综合成绩</th><th class="num">平均平时成绩</th><th class="num">平均期末成绩</th>
+    ${goals.map(g => `<th class="num">${esc(g.name.replace('课程目标', '目标'))}达成度</th>`).join('')}</tr>`;
+  const mk = (label, list) => {
+    const gv = goals.map((g, gi) => avgNum(list.map(r => r._goal[gi])));
+    return `<tr>
+      <td>${esc(label)}</td><td class="num">${list.length}</td>
+      <td class="num">${f1(avgNum(list.map(r => r.F)))}</td>
+      <td class="num">${f1(avgNum(list.map(r => r.D)))}</td>
+      <td class="num">${f1(avgNum(list.map(r => r.examPct)))}</td>
+      ${gv.map(v => `<td class="num">${f4(v)}</td>`).join('')}
+    </tr>`;
+  };
+  $('#classTable tbody').innerHTML =
+    mk('全部合计', all) + classGroups(all).map(g => mk(g.cls, g.list)).join('');
+
+  /* --- 明细 --- */
+  renderDetail(rows);
+  $('#detailTag').textContent = `${rows.length} 人`;
+}
+
+/* 散点图：严格对照原表图表样式 —— 标题两行居中（课程目标N达成情况分布 / 班级），
+   横轴为学生序号（不显示姓名），纵轴 0.0000–1.0000 步长 0.1，蓝色菱形散点，不连线不标数值 */
+let CHART_PNGS = [];
+
+function goalChartSvg(goal, gi, rows, opt) {
+  const W = 860, H = 470;
+  const L = 84, R = 838, T = 96, B = 420;
+  const n = rows.length;
+  const xStep = n <= 40 ? 5 : (n <= 100 ? 10 : 20);
+  const xMax = Math.max(xStep, Math.ceil(n / xStep) * xStep);
+  const X = i => L + (i / xMax) * (R - L);
+  const Y = v => B - Math.max(0, Math.min(1, v)) * (B - T);
+  const cx = (L + R) / 2;
+
+  let s = `<rect x="0.5" y="0.5" width="${W - 1}" height="${H - 1}" fill="#ffffff" stroke="#d9d9d9"/>`;
+  s += `<text x="${cx}" y="42" text-anchor="middle" font-size="22" font-weight="700" fill="#262626" font-family="SimSun, Songti SC, serif">${esc(goal.name)}达成情况分布</text>`;
+  s += `<text x="${cx}" y="78" text-anchor="middle" font-size="22" font-weight="700" fill="#262626" font-family="SimSun, Songti SC, serif">${esc(opt.subtitle)}</text>`;
+
+  /* 横向网格线 + 纵轴刻度（四位小数） */
+  for (let k = 0; k <= 10; k++) {
+    const v = k / 10, y = Y(v).toFixed(1);
+    s += `<line x1="${L}" y1="${y}" x2="${R}" y2="${y}" stroke="#d9d9d9"/>`;
+    s += `<text x="${L - 10}" y="${(Number(y) + 4.5).toFixed(1)}" text-anchor="end" font-size="13" fill="#595959">${v.toFixed(4)}</text>`;
+  }
+
+  /* 纵向网格线 + 横轴刻度 */
+  for (let t = 0; t <= xMax; t += xStep) {
+    const x = (L + (t / xMax) * (R - L)).toFixed(1);
+    s += `<line x1="${x}" y1="${T}" x2="${x}" y2="${B}" stroke="#d9d9d9"/>`;
+    s += `<text x="${x}" y="${B + 26}" text-anchor="middle" font-size="13" fill="#595959">${t}</text>`;
+  }
+
+  /* 绘图区边框 */
+  s += `<rect x="${L}" y="${T}" width="${R - L}" height="${B - T}" fill="none" stroke="#d9d9d9"/>`;
+
+  /* 散点：蓝色菱形，第 i 个学生横坐标即序号 */
+  rows.forEach((r, i) => {
+    const v = r._goal[gi];
+    if (v == null || isNaN(v)) return;
+    const x = X(i + 1).toFixed(1), y = Y(v).toFixed(1), d = 5.5;
+    const yNum = Number(y);
+    s += `<path class="pt" d="M${x} ${(yNum - d).toFixed(1)}L${(Number(x) + d).toFixed(1)} ${y}`
+      + `L${x} ${(yNum + d).toFixed(1)}L${(Number(x) - d).toFixed(1)} ${y}Z" fill="#5b9bd5">`
+      + `<title>${esc(r.name || r.id)}（${esc(r.cls)}）第${i + 1}号 ${v.toFixed(4)}</title></path>`;
+  });
+
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" role="img"`
+    + ` font-family="Calibri, Microsoft YaHei, sans-serif"`
+    + ` aria-label="${esc(goal.name)}达成情况分布散点图，纵轴 0 到 1.0">${s}</svg>`;
+}
+
+/* 个体数据表：学号 / 姓名 / 班级 / 各课程目标达成度 */
+function renderIndiv(rows, goals) {
+  const head = `<thead><tr><th>学号</th><th>姓名</th><th>班级</th>`
+    + goals.map(g => `<th class="num">${esc(g.name)}</th>`).join('') + '</tr></thead>';
+  const body = rows.map(r => {
+    const tds = goals.map((g, i) => `<td class="num">${f4(r._goal[i])}</td>`).join('');
+    return `<tr><td><span class="idcol">${esc(r.id)}</span></td><td>${esc(r.name)}</td><td>${esc(r.cls)}</td>${tds}</tr>`;
+  }).join('');
+  $('#indivTable').innerHTML = head + '<tbody>' + body + '</tbody>';
+  $('#indivTag').textContent = `对应原表「个体数据」工作表 · ${rows.length} 人`;
+}
+
+function renderDetail(rows) {
+  const cols = [
+    { g: '基本信息', items: [
+      { label: '学号', cls: '', get: r => `<span class="idcol">${esc(r.id)}</span>` },
+      { label: '姓名', cls: '', get: r => esc(r.name) },
+      { label: '班级', cls: '', get: r => esc(r.cls) }
+    ] },
+    { g: '期末分题段', items: SETUP.sections.map(s => ({
+        label: s.name, cls: 'imp', get: r => fmt(r.sec[s.name], 2) })).concat([
+        { label: '期末总分', cls: 'calc', get: r => fmt(r.K, 2) },
+        { label: '期末百分制', cls: 'calc', get: r => f1(r.examPct) }
+      ]) },
+    { g: '平时分项', items: SETUP.daily.map(d => ({
+        label: d.name, cls: 'imp', get: r => fmt(r.daily[d.name], 2) })).concat([
+        { label: '平时成绩', cls: 'calc', get: r => f1(r.D) }
+      ]) },
+    { g: '成绩', items: [{ label: '综合成绩', cls: 'calc', get: r => f1(r.F) }] },
+    { g: '课程目标达成度', items: SETUP.goals.map((g, i) => ({
+        label: g.name.replace('课程目标', '目标'), cls: 'calc', get: r => f4(r._goal[i]) })) }
+  ];
+
+  let html = '<thead><tr class="grouphead">';
+  cols.forEach(c => { html += `<th colspan="${c.items.length}">${c.g}</th>`; });
+  html += '</tr><tr>';
+  cols.forEach(c => c.items.forEach(it => { html += `<th class="num ${it.cls || ''}">${esc(it.label)}</th>`; }));
+  html += '</tr></thead><tbody>';
+
+  rows.forEach(r => {
+    const tips = [];
+    if (r._blank.length) tips.push('空值按0计：' + r._blank.join('、'));
+    if (r._over.length) tips.push('超满分：' + r._over.join('、'));
+    const tip = tips.join('；');
+    html += `<tr class="${tip ? 'warnrow' : ''}">`;
+    cols.forEach(c => c.items.forEach(it => {
+      html += `<td class="num ${it.cls || ''}">${it.get(r)}${tip && it === c.items[0] ? ' <span class="warnmark" title="' + esc(tip) + '">⚠</span>' : ''}</td>`;
+    }));
+    html += '</tr>';
+  });
+  html += '</tbody>';
+  $('#detailTable').innerHTML = html;
+}
+
+/* ---------- 下载：个体数据 CSV / 散点图 PNG ---------- */
+function exportIndiv() {
+  if (!DATA.length) return;
+  const rows = VIEW === 'ALL' ? DATA : DATA.filter(r => r.cls === VIEW);
+  const head = ['学号', '姓名', '班级', ...SETUP.goals.map(g => g.name)];
+  const body = rows.map(r => [r.id, r.name, r.cls,
+    ...SETUP.goals.map((g, i) => isNaN(r._goal[i]) ? '' : r._goal[i].toFixed(4))]);
+  downloadCsv([head, ...body], '个体数据-' + (VIEW === 'ALL' ? '全部班级' : VIEW) + '.csv');
+}
+
+function exportPng(idx) {
+  const svg = document.querySelectorAll('#chart svg')[idx];
+  if (!svg) return;
+  const clone = svg.cloneNode(true);
+  clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+  clone.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+  const vb = (clone.getAttribute('viewBox') || '0 0 860 470').split(/\s+/).map(Number);
+  const w = vb[2], h = vb[3], scale = 2;
+  clone.setAttribute('width', w);
+  clone.setAttribute('height', h);
+  const meta = CHART_PNGS[idx] || { goal: '课程目标', cls: '全部班级' };
+  const goalName = meta.goal;
+  const scope = meta.cls;
+
+  const text = new XMLSerializer().serializeToString(clone);
+  const url = URL.createObjectURL(new Blob([text], { type: 'image/svg+xml;charset=utf-8' }));
+  const img = new Image();
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = w * scale;
+    canvas.height = h * scale;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    URL.revokeObjectURL(url);
+    canvas.toBlob(b => {
+      if (!b) { alert('图片生成失败，请改用「打印 / 存 PDF」'); return; }
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(b);
+      a.download = `${goalName}达成情况分布-${scope}.png`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    }, 'image/png');
+  };
+  img.onerror = () => { URL.revokeObjectURL(url); alert('图片生成失败，请改用「打印 / 存 PDF」'); };
+  img.src = url;
+}
+
+/* ========================= 导出 ========================= */
+function csvCell(v) {
+  const s = String(v == null ? '' : v);
+  return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+function downloadCsv(rows, name) {
+  const text = '\uFEFF' + rows.map(r => r.map(csvCell).join(',')).join('\r\n');
+  const blob = new Blob([text], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+
+function exportTemplate() {
+  const head = ['学号', '姓名', '班级',
+    ...SETUP.sections.map(s => s.name),
+    ...SETUP.daily.map(d => d.name)];
+  const blank = new Array(head.length).fill('');
+  const rows = [head, blank, blank];
+  downloadCsv(rows, '成绩导入模板.csv');
+  setMsg('模板已生成：表头按当前设置输出，每个学生一行并填写所属班级；学号与姓名同时为空的行不会被计入。', 'ok');
+}
+
+function exportCsv() {
+  if (!DATA.length) return;
+  const currentRows = VIEW === 'ALL' ? DATA : DATA.filter(r => r.cls === VIEW);
+  const head = ['学号', '姓名', '班级',
+    ...SETUP.sections.map(s => s.name), '期末总分', '期末百分制',
+    ...SETUP.daily.map(d => d.name), '平时成绩', '综合成绩',
+    ...SETUP.goals.map(g => g.name + '达成度')];
+  const rows = [head];
+  currentRows.forEach(r => {
+    const line = [r.id, r.name, r.cls];
+    SETUP.sections.forEach(s => line.push(r.sec[s.name]));
+    line.push(r.K, isNaN(r.examPct) ? '' : r.examPct.toFixed(2));
+    SETUP.daily.forEach(d => line.push(r.daily[d.name]));
+    line.push(isNaN(r.D) ? '' : r.D.toFixed(2));
+    line.push(isNaN(r.F) ? '' : r.F.toFixed(2));
+    SETUP.goals.forEach((g, i) => line.push(isNaN(r._goal[i]) ? '' : r._goal[i].toFixed(4)));
+    rows.push(line);
+  });
+  downloadCsv(rows, '成绩与达成度明细-' + (VIEW === 'ALL' ? '全部班级' : VIEW) + '.csv');
+}
+
+/* ========================= 事件 ========================= */
+$('#btnParse').addEventListener('click', doParseText);
+$('#btnExport').addEventListener('click', exportCsv);
+$('#btnDetailExport').addEventListener('click', exportCsv);
+$('#btnPrint').addEventListener('click', () => window.print());
+$('#btnIndiv').addEventListener('click', exportIndiv);
+$('#chart').addEventListener('click', e => {
+  const b = e.target.closest('[data-png]');
+  if (b) exportPng(Number(b.dataset.png));
+});
+
+/* 班级选项卡：只切换查看范围，不重新解析数据 */
+$('#classTabs').addEventListener('click', e => {
+  const b = e.target.closest('button[data-view]');
+  if (!b) return;
+  VIEW = b.dataset.view;
+  render(CUR_INFO);
+});
+$('#btnTpl').addEventListener('click', exportTemplate);
+$('#btnPick').addEventListener('click', () => $('#file').click());
+$('#file').addEventListener('change', e => {
+  if (e.target.files[0]) handleFile(e.target.files[0]);
+});
+$('#sheetSel').addEventListener('change', e => ingestSheet(Number(e.target.value)));
+
+const drop = $('#drop');
+['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => {
+  e.preventDefault(); drop.classList.add('over');
+}));
+['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => {
+  e.preventDefault(); drop.classList.remove('over');
+}));
+drop.addEventListener('drop', e => {
+  const f = e.dataTransfer.files && e.dataTransfer.files[0];
+  if (f) handleFile(f);
+});
+
+/* 示例数据：按当前设置随机生成，仅用于预览效果 */
+$('#btnDemo').addEventListener('click', () => {
+  if (!SETUP.sections.length || !SETUP.daily.length) {
+    setMsg('请先在第 1 步添加期末题型和平时分项', 'err');
+    return;
+  }
+  const rnd = i => {
+    const x = Math.sin(i * 12.9898 + 78.233) * 43758.5453;
+    return x - Math.floor(x);
+  };
+  const demoClasses = ['示例班1', '示例班2'];
+  const head = ['学号', '姓名', '班级',
+    ...SETUP.sections.map(s => s.name), ...SETUP.daily.map(d => d.name)];
+  const rows = [head];
+  for (let i = 0; i < 24; i++) {
+    const base = 0.55 + rnd(i + 1) * 0.42;
+    const line = [
+      String(2025091101 + i),
+      '示例' + String.fromCharCode(65 + (i % 26)),
+      demoClasses[i % demoClasses.length]
+    ];
+    SETUP.sections.forEach((s, j) => {
+      const rate = Math.min(0.99, base + (rnd(i * 7 + j) - 0.5) * 0.2);
+      line.push(Math.round(s.full * rate * 10) / 10);
+    });
+    SETUP.daily.forEach((d, j) => {
+      const rate = Math.min(1, Math.max(0.3, base + (rnd(i * 11 + j) - 0.5) * 0.22));
+      line.push(Math.round(d.full * rate));
+    });
+    rows.push(line);
+  }
+  applyIngest(rows, '示例数据');
+});
+
+$('#btnReset').addEventListener('click', () => {
+  RAW = []; DATA = []; MISSING = new Set(); LAST = null; XLSX_SHEETS = null;
+  VIEW = 'ALL'; CUR_INFO = '';
+  $('#paste').value = '';
+  $('#resultArea').hidden = true;
+  $('#sheetWrap').hidden = true;
+  $('#fileInfo').textContent = '';
+  $('#btnExport').disabled = true;
+  $('#btnPrint').disabled = true;
+  setMsg('');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+renderSetup();
+</script>
+</body>
+</html>
