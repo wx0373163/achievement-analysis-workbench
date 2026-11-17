@@ -9,9 +9,9 @@
 | 形式 | 适用场景 | 位置 |
 | --- | --- | --- |
 | 独立 HTML | 免安装，用浏览器直接打开，可离线使用 | [index.html](./index.html) |
-| Windows 安装包 | 安装后成为独立桌面应用，带桌面与开始菜单快捷方式 | [Releases 页面](https://github.com/wx0373163/achievement-analysis-workbench/releases) |
+| Windows 安装包（V1.1） | 安装后成为独立桌面应用，带桌面与开始菜单快捷方式 | [AchievementAnalysis-Setup-1.1.exe](https://github.com/wx0373163/achievement-analysis-workbench/releases/download/v1.1/AchievementAnalysis-Setup-1.1.exe) |
 
-独立 HTML 与安装包内的页面完全一致，两者功能相同。
+独立 HTML 与安装包内的页面完全一致，两者功能相同。历史版本可在 [Releases 页面](https://github.com/wx0373163/achievement-analysis-workbench/releases)查看。
 
 ## 主要功能
 
