@@ -163,6 +163,8 @@ tr.warnrow td{background:#fffaf3}
 tr.warnrow:hover td{background:#fff6e8}
 .warnmark{color:var(--warn); cursor:help; font-size:12px}
 .mini{font-size:11.5px; color:var(--muted); margin-top:8px}
+.sub-hd{font-size:12.5px; color:#3c4a5e; font-weight:600; margin:14px 0 8px}
+.card-hd + .sub-hd{margin-top:4px}
 .grouphead th{background:#eef3fa; font-size:12px; text-align:center; border-bottom:1px solid #dde6f2}
 
 /* 明细表 */
@@ -202,6 +204,7 @@ tr.warnrow:hover td{background:#fff6e8}
 footer.note-foot{font-size:11.5px; color:var(--muted); text-align:center; padding:6px 0 0}
 footer.note-foot p{margin:2px 0}
 footer.note-foot .copyright{font-size:12px; color:#4a5568; letter-spacing:.2px}
+footer.note-foot .version{font-size:11.5px; color:var(--muted); letter-spacing:.6px; margin-top:2px}
 
 #resultArea{display:grid; gap:16px}
 
@@ -342,6 +345,15 @@ footer.note-foot .copyright{font-size:12px; color:#4a5568; letter-spacing:.2px}
     </div>
 
     <div class="card">
+      <div class="card-hd"><h2 style="font-size:14.5px">分班对比</h2>
+        <span class="tag">全员合计 + 按导入数据中的「班级」列分组</span>
+      </div>
+      <div class="tbl-wrap">
+        <table id="classTable"><thead></thead><tbody></tbody></table>
+      </div>
+    </div>
+
+    <div class="card">
       <div class="card-hd"><h2 style="font-size:14.5px">课程目标达成度</h2>
         <span class="tag">达成度 = Σ(权重 × 得分率) ÷ Σ权重</span>
       </div>
@@ -394,15 +406,6 @@ footer.note-foot .copyright{font-size:12px; color:#4a5568; letter-spacing:.2px}
     </div>
 
     <div class="card">
-      <div class="card-hd"><h2 style="font-size:14.5px">分班对比</h2>
-        <span class="tag">全员合计 + 按导入数据中的「班级」列分组</span>
-      </div>
-      <div class="tbl-wrap">
-        <table id="classTable"><thead></thead><tbody></tbody></table>
-      </div>
-    </div>
-
-    <div class="card">
       <div class="card-hd"><h2 style="font-size:14.5px">学生明细</h2>
         <span class="tag" id="detailTag"></span>
         <button class="ghost sm" id="btnDetailExport">导出 CSV</button>
@@ -412,11 +415,32 @@ footer.note-foot .copyright{font-size:12px; color:#4a5568; letter-spacing:.2px}
       </div>
       <p class="mini">单元格带「⚠」表示该行存在数据问题，把鼠标移到标记上可看原因。</p>
     </div>
+
+    <div class="card">
+      <div class="card-hd"><h2 style="font-size:14.5px">课程总评成绩汇总（课程总结表摘取项）</h2>
+        <span class="tag">数值随上方班级选项卡联动 · 全部百分制</span>
+      </div>
+      <h3 class="sub-hd">一、总评成绩概况</h3>
+      <div class="tbl-wrap"><table id="sumBase"></table></div>
+
+      <h3 class="sub-hd">二、分数段分布</h3>
+      <div class="tbl-wrap"><table id="sumBands"></table></div>
+
+      <h3 class="sub-hd">三、课程目标考核的具体分值与权重</h3>
+      <div class="tbl-wrap"><table id="sumGoals"></table></div>
+
+      <h3 class="sub-hd">四、平时成绩分项平均分</h3>
+      <div class="tbl-wrap"><table id="sumDaily"></table></div>
+
+      <p class="mini">本卡片对应课程总结表中以黄底标注的字段。「目标分值」与「平均分」均为百分制；
+        导入数据没有缺考字段，因此「应考人数」与「参与分析总人数」相同。</p>
+    </div>
   </section>
 
   <footer class="note-foot">
     <p>本页所有计算均在本地浏览器完成，数据不会上传到任何服务器。</p>
     <p class="copyright">© 王啸（wangxiao@hrbu.edu.cn）</p>
+    <p class="version">V1.1 版</p>
   </footer>
 </main>
 
@@ -1278,6 +1302,9 @@ function render(info) {
   /* --- 明细 --- */
   renderDetail(rows);
   $('#detailTag').textContent = `${rows.length} 人`;
+
+  /* --- 课程总评成绩汇总 --- */
+  renderSummary(rows, goals);
 }
 
 /* 散点图：严格对照原表图表样式 —— 标题两行居中（课程目标N达成情况分布 / 班级），
@@ -1383,6 +1410,84 @@ function renderDetail(rows) {
   });
   html += '</tbody>';
   $('#detailTable').innerHTML = html;
+}
+
+/* ---------- 课程总评成绩汇总（对应课程总结表黄底项） ---------- */
+function renderSummary(rows, goals) {
+  const n = rows.length;
+  const f2 = v => (v == null || typeof v !== 'number' || isNaN(v)) ? '—' : v.toFixed(2);
+  const fv = rows.map(r => r.F).filter(v => typeof v === 'number' && !isNaN(v));
+
+  /* 一、总评概况 */
+  $('#sumBase').innerHTML =
+    `<thead><tr><th class="num">应考人数</th><th class="num">参与分析总人数</th>
+      <th class="num">最高分</th><th class="num">最低分</th><th class="num">平均分</th></tr></thead>
+     <tbody><tr>
+      <td class="num">${n}</td><td class="num">${n}</td>
+      <td class="num">${fv.length ? f2(Math.max(...fv)) : '—'}</td>
+      <td class="num">${fv.length ? f2(Math.min(...fv)) : '—'}</td>
+      <td class="num accent">${f2(avgNum(rows.map(r => r.F)))}</td>
+     </tr></tbody>`;
+
+  /* 二、分数段分布 */
+  const bands = [
+    ['100~90', '优秀', v => v >= 90],
+    ['89~80', '良好', v => v >= 80 && v < 90],
+    ['79~70', '中等', v => v >= 70 && v < 80],
+    ['69~60', '及格', v => v >= 60 && v < 70],
+    ['<60', '不及格', v => v < 60]
+  ];
+  $('#sumBands').innerHTML =
+    `<thead><tr><th>分数段</th><th>等级</th><th class="num">人数</th>
+      <th class="num">百分比（占参与分析人数）</th></tr></thead><tbody>` +
+    bands.map(([rng, lv, test]) => {
+      const c = fv.filter(test).length;
+      return `<tr><td>${rng}</td><td>${lv}</td><td class="num">${c}</td>
+        <td class="num">${n ? (c / n * 100).toFixed(2) : '0.00'}</td></tr>`;
+    }).join('') + '</tbody>';
+
+  /* 三、课程目标分值与权重（期末考试按目标内期末题型合并为一个环节） */
+  $('#sumGoals').innerHTML =
+    `<thead><tr><th>课程目标</th><th>评价环节</th><th class="num">目标分值</th>
+      <th class="num">平均分</th><th class="num">权重</th>
+      <th class="num">目标达成评价值</th></tr></thead><tbody>` +
+    goals.map(g => {
+      if (!g.items.length) {
+        return `<tr><td class="gname">${esc(g.name)}</td>
+          <td colspan="4" class="hint">未设置评价环节</td><td class="num accent">—</td></tr>`;
+      }
+      const exam = g.items.filter(it => it.kind === 's');
+      const daily = g.items.filter(it => it.kind === 'd');
+      const lines = [];
+      if (exam.length) {
+        const w = exam.reduce((a, it) => a + it.wNorm, 0);
+        const acc = exam.reduce((a, it) => a + it.wNorm * it.rate * 100, 0);
+        lines.push({ label: '期末考试', w, avg: w ? acc / w : NaN });
+      }
+      daily.forEach(it => lines.push({ label: it.ref, w: it.wNorm, avg: it.rate * 100 }));
+      return lines.map((l, i) => {
+        let tds = '';
+        if (i === 0) tds += `<td class="gname" rowspan="${lines.length}">${esc(g.name)}</td>`;
+        tds += `<td>${esc(l.label)}</td><td class="num">100</td>
+          <td class="num">${f2(l.avg)}</td><td class="num">${l.w.toFixed(2)}</td>`;
+        if (i === 0) tds += `<td class="num accent" rowspan="${lines.length}">${f4(g.value)}</td>`;
+        return `<tr>${tds}</tr>`;
+      }).join('');
+    }).join('') + '</tbody>';
+
+  /* 四、平时成绩分项平均分（含未纳入课程目标的分项） */
+  const dw = SETUP.daily.reduce((a, d) => a + (+d.weight || 0), 0);
+  $('#sumDaily').innerHTML =
+    `<thead><tr><th>平时分项</th><th class="num">满分</th><th class="num">平均分</th>
+      <th class="num">占平时成绩权重</th></tr></thead><tbody>` +
+    SETUP.daily.map(d => {
+      const full = d.full > 0 ? d.full : 100;
+      const avgRaw = avgNum(rows.map(r => r.daily[d.name]));
+      const avgPct = avgNum(rows.map(r => isNaN(r._rate[itemKey('d', d.name)]) ? NaN : r._rate[itemKey('d', d.name)] * 100));
+      return `<tr><td>${esc(d.name)}</td><td class="num">${fmt(full, 1)}</td>
+        <td class="num" title="原始平均分 ${f2(avgRaw)} / 满分 ${fmt(full, 1)}">${f2(avgPct)}</td>
+        <td class="num">${dw ? ((+d.weight || 0) / dw).toFixed(2) : '—'}</td></tr>`;
+    }).join('') + '</tbody>';
 }
 
 /* ---------- 下载：个体数据 CSV / 散点图 PNG ---------- */
