@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>专业课达成度分析工作台</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop stop-color='%232563eb'/%3E%3Cstop offset='1' stop-color='%230ea5e9'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='url(%23g)'/%3E%3Ctext x='32' y='44' text-anchor='middle' font-size='38' font-family='Microsoft YaHei,sans-serif' fill='white'%3E%E9%A9%AC%3C/text%3E%3C/svg%3E">
 <style>
 :root{
   --bg:#f4f6f8; --card:#fff; --line:#e3e7ec; --line2:#eef1f5;
@@ -231,7 +232,7 @@ footer.note-foot .version{font-size:11.5px; color:var(--muted); letter-spacing:.
 
 <div class="topbar">
   <div class="brand">
-    <div class="mark">政</div>
+    <div class="mark">马</div>
     <div>
       <h1>专业课达成度分析工作台</h1>
       <p class="sub">分题段统计与课程目标达成度计算</p>
@@ -432,6 +433,12 @@ footer.note-foot .version{font-size:11.5px; color:var(--muted); letter-spacing:.
       <h3 class="sub-hd">四、平时成绩分项平均分</h3>
       <div class="tbl-wrap"><table id="sumDaily"></table></div>
 
+      <div class="sub-hd">五、单行汇总数据<span class="spacer"></span>
+        <button class="ghost sm" id="btnSummaryExport">导出汇总 CSV</button>
+      </div>
+      <div class="tbl-wrap"><table id="sumWide"></table></div>
+      <p class="mini">本表每个班级选项卡显示一行；各分数段占比以当前范围人数为分母，环节平均分均为百分制，达成评价值保留四位小数。</p>
+
       <p class="mini">本卡片对应课程总结表中以黄底标注的字段。「目标分值」与「平均分」均为百分制；
         导入数据没有缺考字段，因此「应考人数」与「参与分析总人数」相同。</p>
     </div>
@@ -440,7 +447,7 @@ footer.note-foot .version{font-size:11.5px; color:var(--muted); letter-spacing:.
   <footer class="note-foot">
     <p>本页所有计算均在本地浏览器完成，数据不会上传到任何服务器。</p>
     <p class="copyright">© 王啸（wangxiao@hrbu.edu.cn）</p>
-    <p class="version">V1.1 版</p>
+    <p class="version">V1.1.1 版</p>
   </footer>
 </main>
 
@@ -1412,6 +1419,61 @@ function renderDetail(rows) {
   $('#detailTable').innerHTML = html;
 }
 
+/* ---------- 单行汇总：页面与 CSV 共用字段和数值 ---------- */
+function summaryWideOf(rows, goals) {
+  const f2 = v => (v == null || typeof v !== 'number' || isNaN(v)) ? '—' : v.toFixed(2);
+  const n = rows.length;
+  const fv = rows.map(r => r.F).filter(v => typeof v === 'number' && !isNaN(v));
+  const columns = [
+    { group: '班级与综合成绩', labels: ['班级名称'], head: '班级名称', value: VIEW === 'ALL' ? '全部数据' : VIEW },
+    { group: '班级与综合成绩', labels: ['应考人数'], head: '应考人数', value: n },
+    { group: '班级与综合成绩', labels: ['最高分'], head: '综合成绩最高分', value: fv.length ? f2(Math.max(...fv)) : '—' },
+    { group: '班级与综合成绩', labels: ['最低分'], head: '综合成绩最低分', value: fv.length ? f2(Math.min(...fv)) : '—' },
+    { group: '班级与综合成绩', labels: ['平均分'], head: '综合成绩平均分', value: f2(avgNum(rows.map(r => r.F))) }
+  ];
+  const bands = [
+    ['90～100分', v => v >= 90],
+    ['80～89分', v => v >= 80 && v < 90],
+    ['70～79分', v => v >= 70 && v < 80],
+    ['60～69分', v => v >= 60 && v < 70],
+    ['低于60分', v => v < 60]
+  ];
+  bands.forEach(([label, test]) => {
+    const count = fv.filter(test).length;
+    const group = '综合成绩分数段（人数 / 占全班比例）';
+    columns.push({ group, labels: [label, '人数'], head: label + '人数', value: count });
+    columns.push({ group, labels: ['占比'], head: label + '人数占全班比例', value: (n ? count / n * 100 : 0).toFixed(2) + '%' });
+  });
+  goals.forEach(g => {
+    const exam = g.items.filter(it => it.kind === 's');
+    if (exam.length) {
+      const w = exam.reduce((a, it) => a + it.wNorm, 0);
+      const acc = exam.reduce((a, it) => a + it.wNorm * it.rate * 100, 0);
+      columns.push({ group: g.name, labels: ['期末考试', '平均分'], head: g.name + '期末考试平均分（百分制）', value: f2(w ? acc / w : NaN) });
+    }
+    g.items.filter(it => it.kind === 'd').forEach(it => {
+      columns.push({ group: g.name, labels: [it.ref, '平均分'], head: g.name + it.ref + '平均分（百分制）', value: f2(it.rate * 100) });
+    });
+    columns.push({ group: g.name, labels: ['达成', '评价值'], head: g.name + '达成评价值', value: f4(g.value), accent: true });
+  });
+  return { columns, head: columns.map(c => c.head), line: columns.map(c => c.value) };
+}
+
+function renderSummaryWide(rows, goals) {
+  const { columns } = summaryWideOf(rows, goals);
+  const groups = [];
+  columns.forEach(c => {
+    const last = groups[groups.length - 1];
+    if (!last || last.label !== c.group) groups.push({ label: c.group, count: 1 });
+    else last.count++;
+  });
+  $('#sumWide').innerHTML = '<thead><tr class="grouphead">' +
+    groups.map(g => `<th colspan="${g.count}">${esc(g.label)}</th>`).join('') + '</tr><tr>' +
+    columns.map(c => `<th>${c.labels.map(esc).join('<br>')}</th>`).join('') + '</tr></thead><tbody><tr>' +
+    columns.map((c, i) => `<td${i ? ' class="num' + (c.accent ? ' accent' : '') + '"' : ''}>${esc(c.value)}</td>`).join('') +
+    '</tr></tbody>';
+}
+
 /* ---------- 课程总评成绩汇总（对应课程总结表黄底项） ---------- */
 function renderSummary(rows, goals) {
   const n = rows.length;
@@ -1488,6 +1550,9 @@ function renderSummary(rows, goals) {
         <td class="num" title="原始平均分 ${f2(avgRaw)} / 满分 ${fmt(full, 1)}">${f2(avgPct)}</td>
         <td class="num">${dw ? ((+d.weight || 0) / dw).toFixed(2) : '—'}</td></tr>`;
     }).join('') + '</tbody>';
+
+  /* 五、单行汇总数据 */
+  renderSummaryWide(rows, goals);
 }
 
 /* ---------- 下载：个体数据 CSV / 散点图 PNG ---------- */
@@ -1554,6 +1619,13 @@ function downloadCsv(rows, name) {
   setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 }
 
+function exportSummary() {
+  if (!DATA.length) return;
+  const rows = VIEW === 'ALL' ? DATA : DATA.filter(r => r.cls === VIEW);
+  const wide = summaryWideOf(rows, goalRowsOf(rows, SETUP));
+  downloadCsv([wide.head, wide.line], '课程总评单行汇总-' + (VIEW === 'ALL' ? '全部班级' : VIEW) + '.csv');
+}
+
 function exportTemplate() {
   const head = ['学号', '姓名', '班级',
     ...SETUP.sections.map(s => s.name),
@@ -1591,6 +1663,7 @@ $('#btnExport').addEventListener('click', exportCsv);
 $('#btnDetailExport').addEventListener('click', exportCsv);
 $('#btnPrint').addEventListener('click', () => window.print());
 $('#btnIndiv').addEventListener('click', exportIndiv);
+$('#btnSummaryExport').addEventListener('click', exportSummary);
 $('#chart').addEventListener('click', e => {
   const b = e.target.closest('[data-png]');
   if (b) exportPng(Number(b.dataset.png));
@@ -1658,13 +1731,25 @@ $('#btnDemo').addEventListener('click', () => {
 
 $('#btnReset').addEventListener('click', () => {
   RAW = []; DATA = []; MISSING = new Set(); LAST = null; XLSX_SHEETS = null;
-  VIEW = 'ALL'; CUR_INFO = '';
+  VIEW = 'ALL'; CUR_INFO = ''; CHART_PNGS = [];
+  SETUP = clone(DEFAULT_SETUP);
   $('#paste').value = '';
-  $('#resultArea').hidden = true;
-  $('#sheetWrap').hidden = true;
+  $('#file').value = '';
   $('#fileInfo').textContent = '';
+  $('#sheetSel').innerHTML = '';
+  $('#sheetWrap').hidden = true;
+  $('#resultArea').hidden = true;
   $('#btnExport').disabled = true;
   $('#btnPrint').disabled = true;
+  [
+    '#classTabs', '#kpis', '#issueBox', '#classTable thead', '#classTable tbody',
+    '#goalTable tbody', '#gradTable tbody', '#chart', '#indivTable', '#detailTable',
+    '#sumBase', '#sumBands', '#sumGoals', '#sumDaily', '#sumWide'
+  ].forEach(s => { $(s).innerHTML = ''; });
+  $('#scopeTag').textContent = '';
+  $('#detailTag').textContent = '';
+  $('#indivTag').textContent = '对应原表「个体数据」工作表';
+  renderSetup();
   setMsg('');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 });
